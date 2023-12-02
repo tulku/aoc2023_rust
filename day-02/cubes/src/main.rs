@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::cmp;
 use std::path;
 use std::fs;
 
@@ -45,7 +46,7 @@ fn main() {
 
     let pattern = Regex::new(r"^Game (\d+): ((?:\d+ \w+(?:, |; )?)+)$").unwrap();
 
-    let sum = content.lines().enumerate().map(|(index, line)| {
+    let possible_games_sum = content.lines().enumerate().map(|(index, line)| {
         let caps = pattern.captures(line).unwrap_or_else(|| {
             panic!("Bad gaming log format on line {}", index + 1)
         });
@@ -67,5 +68,24 @@ fn main() {
         game_id.parse::<u32>().unwrap()
     }).sum::<u32>();
 
-    println!("{}", sum);
+    let game_power_sum = content.lines().enumerate().map(|(index, line)| {
+        let caps = pattern.captures(line).unwrap_or_else(|| {
+            panic!("Bad gaming log format on line {}", index + 1)
+        });
+        let mut minimum_set: HashMap<&str, u32> = HashMap::new();
+        let game_set = caps.get(2).unwrap().as_str();
+        for game in game_set.split("; ") {
+            for draw in game.split(", ") {
+                let (number, color) = draw.split_once(' ').unwrap();
+                minimum_set.insert(color, cmp::max(
+                    minimum_set.get(color).copied().unwrap_or(0),
+                    number.parse::<u32>().unwrap()
+                ));
+            }
+        }
+        minimum_set.values().product::<u32>()
+    }).sum::<u32>();
+
+    println!("Possible games: {}", possible_games_sum);
+    println!("Power of games: {}", game_power_sum);
 }
