@@ -21,3 +21,15 @@ fn main() {
     let result = part_1(input);
     println!("Total points: {}", result);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_cards() {
+        let input = include_str!("../../input/test-1.txt");
+        let result = part_1(input);
+        assert_eq!(13, result);
+    }
+}
