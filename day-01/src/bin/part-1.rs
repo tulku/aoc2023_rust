@@ -30,10 +30,19 @@ fn find_calibration(line: &str) -> Option<u32> {
                 '0'..='9' => first_value = character.to_digit(10),
                 _ => continue,
             }
+        } else {
+            break;
         }
-        match character {
-            '0'..='9' => second_value = character.to_digit(10),
-            _ => continue,
+    }
+    first_value?;
+    for character in line.chars().rev() {
+        if second_value.is_none() {
+            match character {
+                '0'..='9' => second_value = character.to_digit(10),
+                _ => continue,
+            }
+        } else {
+            break;
         }
     }
 
