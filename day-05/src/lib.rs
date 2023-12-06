@@ -128,6 +128,21 @@ impl Almanac {
         }
         locations
     }
+
+    pub fn get_min_location_ranged_seeds(&self) -> usize {
+        let mut min_location = usize::MAX;
+        for seed_range in self.seeds.chunks(2) {
+            let start = seed_range[0];
+            let length = seed_range[1];
+            for seed in start..=start + length - 1 {
+                let location = self.seed_to_location(seed);
+                if location < min_location {
+                    min_location = location;
+                }
+            }
+        }
+        min_location
+    }
 }
 
 fn get_numbers(line: &str) -> Vec<usize> {
@@ -189,6 +204,9 @@ mod tests {
 
         let locations = almanac.get_all_locations();
         assert_eq!(locations.iter().min(), Some(&35));
+
+        let location = almanac.get_min_location_ranged_seeds();
+        assert_eq!(location, 46);
     }
 
     #[test]
