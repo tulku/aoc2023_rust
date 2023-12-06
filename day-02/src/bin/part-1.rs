@@ -55,8 +55,8 @@ fn is_attempt_valid(attempt: &str) -> Option<bool> {
     return Some(true);
 }
 
-fn is_game_valid(line: &str) -> Option<bool> {
-    let attempts_no_name: Vec<&str> = line.split(":").collect();
+fn is_game_valid(game: &str) -> Option<bool> {
+    let attempts_no_name: Vec<&str> = game.split(":").collect();
     let attempts: Vec<&str> = attempts_no_name[1].split(';').collect();
     for attempt in attempts {
         if !is_attempt_valid(attempt).unwrap() {
