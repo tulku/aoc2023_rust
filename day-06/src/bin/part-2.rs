@@ -30,9 +30,10 @@ impl Race {
 }
 
 fn get_numbers(line: &str) -> Vec<usize> {
+    let line: String = line.split_whitespace().collect();
     let re = Regex::new(r"(\d+)").unwrap();
     let numbers = re
-        .captures_iter(line)
+        .captures_iter(line.as_str())
         .map(|caps| caps.get(0).unwrap().as_str().parse::<usize>().unwrap())
         .collect::<Vec<usize>>();
 
@@ -105,6 +106,6 @@ mod tests {
     fn test_input() {
         let input = include_str!("../../input/test-1.txt");
         let score = part_1(input);
-        assert_eq!(score, 288);
+        assert_eq!(score, 71503);
     }
 }
