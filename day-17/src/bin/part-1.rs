@@ -1,8 +1,9 @@
 // Title: Day 17 - Part 1
 // Description: https://adventofcode.com/2023/day/17
+use itertools::Itertools;
 use pathfinding::prelude::astar;
 use std::hash::{Hash, Hasher};
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Hash)]
 enum Direction {
     Up,
     Down,
@@ -40,39 +41,77 @@ impl State {
 
         let options = match self.from {
             Direction::Any => vec![
-                (Direction::Down, if x > 0 { x - 1 } else { x }, y),
-                (Direction::Up, x + 1, y),
-                (Direction::Left, x, y + 1),
-                (Direction::Right, x, if y > 0 { y - 1 } else { y }),
+                (
+                    Direction::Down,
+                    if x > 0 { Some(x - 1) } else { None },
+                    Some(y),
+                ),
+                (Direction::Up, Some(x + 1), Some(y)),
+                (Direction::Left, Some(x), Some(y + 1)),
+                (
+                    Direction::Right,
+                    Some(x),
+                    if y > 0 { Some(y - 1) } else { None },
+                ),
             ],
-
             Direction::Up => vec![
-                (Direction::Up, x + 1, y),
-                (Direction::Left, x, y + 1),
-                (Direction::Right, x, if y > 0 { y - 1 } else { y }),
+                (Direction::Up, Some(x + 1), Some(y)),
+                (Direction::Left, Some(x), Some(y + 1)),
+                (
+                    Direction::Right,
+                    Some(x),
+                    if y > 0 { Some(y - 1) } else { None },
+                ),
             ],
             Direction::Down => vec![
-                (Direction::Down, if x > 0 { x - 1 } else { x }, y),
-                (Direction::Left, x, y + 1),
-                (Direction::Right, x, if y > 0 { y - 1 } else { y }),
+                (
+                    Direction::Down,
+                    if x > 0 { Some(x - 1) } else { None },
+                    Some(y),
+                ),
+                (Direction::Left, Some(x), Some(y + 1)),
+                (
+                    Direction::Right,
+                    Some(x),
+                    if y > 0 { Some(y - 1) } else { None },
+                ),
             ],
             Direction::Left => vec![
-                (Direction::Left, x, y + 1),
-                (Direction::Down, if x > 0 { x - 1 } else { x }, y),
-                (Direction::Up, x + 1, y),
+                (Direction::Left, Some(x), Some(y + 1)),
+                (
+                    Direction::Down,
+                    if x > 0 { Some(x - 1) } else { None },
+                    Some(y),
+                ),
+                (Direction::Up, Some(x + 1), Some(y)),
             ],
             Direction::Right => vec![
-                (Direction::Right, x, if y > 0 { y - 1 } else { y }),
-                (Direction::Down, if x > 0 { x - 1 } else { x }, y),
-                (Direction::Up, x + 1, y),
+                (
+                    Direction::Right,
+                    Some(x),
+                    if y > 0 { Some(y - 1) } else { None },
+                ),
+                (
+                    Direction::Down,
+                    if x > 0 { Some(x - 1) } else { None },
+                    Some(y),
+                ),
+                (Direction::Up, Some(x + 1), Some(y)),
             ],
         };
         let mut iterator = options.iter();
-        if self.straight >= 3 {
+        if self.straight >= 2 {
             iterator.next();
         }
         let max_pose = (map.len() - 1, map[0].len() - 1);
         let possible_states = iterator
+            .filter(|(_, x, y)| {
+                if x.is_none() || y.is_none() {
+                    return false;
+                }
+                true
+            })
+            .map(|(direction, x, y)| (*direction, x.unwrap(), y.unwrap()))
             .filter(|(_, x, y)| {
                 if *x > max_pose.0 || *y > max_pose.1 {
                     return false;
@@ -82,19 +121,26 @@ impl State {
             .map(|(direction, x, y)| {
                 (
                     State {
-                        pos: (*x, *y),
-                        from: *direction,
-                        straight: if self.from == *direction {
+                        pos: (x, y),
+                        from: direction,
+                        straight: if self.from == direction {
                             self.straight + 1
                         } else {
                             0
                         },
                     },
-                    map[*x][*y],
+                    map[x][y],
                 )
             })
-            .collect();
-        println!("Possible states: {:?}", possible_states);
+            .unique()
+            .collect::<Vec<(State, u32)>>();
+
+        // let states = possible_states
+        //     .iter()
+        //     .map(|(state, cost)| (state.pos, state.from, *cost))
+        //     .collect::<Vec<((usize, usize), Direction, u32)>>();
+
+        // println!("From {:?} -> next: {:?}", self, states);
         possible_states
     }
 }
@@ -108,8 +154,6 @@ fn parse_input(input: &str) -> Vec<Vec<u32>> {
                 .collect()
         })
         .collect();
-
-    println!("{:?}", arr);
     arr
 }
 
@@ -125,7 +169,6 @@ fn part_1(input: &str) -> usize {
         from: Direction::Any,
         straight: 0,
     };
-    println!("Pos 1, 2: {:?}", map[0]);
     let result = astar(
         &start,
         |p| p.successors(&map),
@@ -133,8 +176,29 @@ fn part_1(input: &str) -> usize {
         |p| *p == goal,
     );
 
-    println!("Result: {:?}", result);
-    return 0;
+    // println!("Result: {:?}", result);
+    plot_path(&map, &result.as_ref().unwrap().0);
+    result.unwrap().1 as usize - map[goal.pos.0][goal.pos.1] as usize
+}
+
+fn plot_path(map: &[Vec<u32>], path: &[State]) {
+    let mut map: Vec<Vec<&str>> = map
+        .iter()
+        .map(|row| row.iter().map(|_| ".").collect())
+        .collect();
+    for state in path {
+        let dir = match state.from {
+            Direction::Up => "v",
+            Direction::Down => "^",
+            Direction::Left => ">",
+            Direction::Right => "<",
+            Direction::Any => "X",
+        };
+        map[state.pos.0][state.pos.1] = dir;
+    }
+    for row in map {
+        println!("{}", row.as_slice().join(" "));
+    }
 }
 
 fn main() {
@@ -152,6 +216,6 @@ mod tests {
     fn test_input() {
         let input = include_str!("../../input/test-1.txt");
         let score = part_1(input);
-        assert_eq!(score, 288);
+        assert_eq!(score, 102);
     }
 }
